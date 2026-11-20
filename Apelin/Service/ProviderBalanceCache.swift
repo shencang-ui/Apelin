@@ -107,9 +107,9 @@ public extension AgentProvider {
         if case .openAICompatibleEndpoint = self { return true }
         switch self {
         case .workBuddy, .workBuddyAI, .deepSeek, .openRouter, .openAI, .openAICompatible:
-            true
+            return true
         default:
-            false
+            return false
         }
     }
 
