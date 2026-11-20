@@ -1678,8 +1678,10 @@ public actor AgentSession {
     /// system prompt shows.
     static let ownChangeTools: Set<AgentToolName> = [.memorySave, .memoryDelete, .skillSave, .skillRemove]
 
-    /// The largest attachment a message carries, whether sent or a tool's image.
-    public static let maximumAttachmentBytes = 32 * 1024 * 1024
+    /// The largest attachment a message carries, whether sent or a tool's
+    /// image: the one number `ApelinProtocol.apelinMaximumAttachmentBytes`
+    /// names, which the picker and the send path read too.
+    public static let maximumAttachmentBytes = ApelinProtocol.apelinMaximumAttachmentBytes
 
     private func saveAttachment(name: String, mimeType: String, data: Data) throws -> AgentAttachment {
         guard data.count <= Self.maximumAttachmentBytes else {

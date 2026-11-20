@@ -309,22 +309,51 @@ enum AccountMeter {
 
     // MARK: - API-key providers
 
-    /// DeepSeek's `GET /user/balance` and OpenRouter's `GET /api/v1/credits`.
-    /// The two meters speak different shapes, read one at a time here. Both
-    /// endpoints sit on the provider's own host, never under a key's saved
-    /// base URL: that names a relay's model endpoint, which serves no meter.
+    /// DeepSeek's `GET /user/balance`, OpenRouter's `GET /api/v1/credits`
+    /// and OpenAI's legacy `GET /dashboard/billing/subscription`. All sit on
+    /// the meter's own host — the provider's, or the base URL the key was
+    /// signed in with, whose host many relays answer the billing calls on.
+    /// A meter that refuses or says nothing answers unknown: a normal OpenAI
+    /// key has no balance endpoint of its own, and an admin key would be
+    /// needed for the official one.
     private static func apiKeyBalance(provider: AgentProvider, credentials: OAuthCredentials) async throws -> AgentAccountBalance {
-        var request: URLRequest
-        switch provider {
-        case .deepSeek:
-            guard let url = URL(string: "https://api.deepseek.com/user/balance") else { return AgentAccountBalance(known: false) }
-            request = URLRequest(url: url, timeoutInterval: 20)
-        case .openRouter:
-            guard let url = URL(string: "https://openrouter.ai/api/v1/credits") else { return AgentAccountBalance(known: false) }
-            request = URLRequest(url: url, timeoutInterval: 20)
-        default:
-            return AgentAccountBalance(known: false)
+        // The host the key's own form named, else the provider's: the same
+        // base `ProviderModels.modelRequest` reads, whose host serves the
+        // billing endpoints on a relay.
+        let configured: String? = if case let .string(value)? = credentials.extras[AgentSignInField.baseURL.rawValue] {
+            value
+        } else {
+            nil
         }
+        let meterHost: String
+        switch provider {
+        case .openAI:
+            meterHost = configured ?? "https://api.openai.com"
+        default:
+            meterHost = configured ?? ""
+        }
+        guard let base = URLComponents(string: meterHost), base.host != nil else {
+            // A meter host that does not parse is not a failure of the key.
+            if provider == .openAI { return AgentAccountBalance(known: false) }
+        }
+        let path: String
+        switch provider {
+        case .deepSeek: path = "/user/balance"
+        case .openRouter: path = "/api/v1/credits"
+        case .openAI: path = "/dashboard/billing/subscription"
+        default: return AgentAccountBalance(known: false)
+        }
+        // DeepSeek and OpenRouter's meters sit on their own hosts, never
+        // under a relay: a saved base names a model endpoint, not a meter.
+        let urlString: String
+        switch provider {
+        case .deepSeek: urlString = "https://api.deepseek.com" + path
+        case .openRouter: urlString = "https://openrouter.ai" + path
+        case .openAI: urlString = meterHost.trimmedSlashes + path
+        default: return AgentAccountBalance(known: false)
+        }
+        guard let url = URL(string: urlString) else { return AgentAccountBalance(known: false) }
+        var request = URLRequest(url: url, timeoutInterval: 20)
         request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -343,6 +372,17 @@ enum AccountMeter {
             let currency = first["currency"] as? String
             return AgentAccountBalance(known: true, balance: total, unit: currency)
         }
+        if provider == .openAI {
+            // The legacy meter: {hard_limit_usd, total_usage (granted, used)}.
+            // A relay answers it with its own grant; OpenAI itself answers
+            // 401 to a normal key now, which lands as unknown upstream.
+            let granted = (root["hard_limit_usd"] as? NSNumber)?.doubleValue
+                ?? Double(root["hard_limit_usd"] as? String ?? "")
+            let used = (root["total_usage"] as? NSNumber)?.doubleValue
+                ?? Double(root["total_usage"] as? String ?? "")
+            guard let granted else { return AgentAccountBalance(known: false) }
+            return AgentAccountBalance(known: true, balance: granted - used, unit: "USD")
+        }
         // {data: {total_credits, total_usage}}
         let node = root["data"] as? [String: Any] ?? [:]
         guard let credits = (node["total_credits"] as? NSNumber)?.doubleValue else {
@@ -354,6 +394,15 @@ enum AccountMeter {
             balance: credits - usage,
             unit: "USD",
         )
+    }
+}
+
+private extension String {
+    /// The base without its trailing slashes, as a path is appended to it.
+    var trimmedSlashes: String {
+        var s = self
+        while s.hasSuffix("/") { s.removeLast() }
+        return s
     }
 }
 

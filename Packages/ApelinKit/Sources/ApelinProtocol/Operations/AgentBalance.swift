@@ -100,6 +100,12 @@ public struct AgentAccountCheckinResponse: Codable, Sendable, Equatable {
     }
 }
 
+/// The largest attachment a message carries, on every side of the wire: the
+/// picker's read, the message's descriptors and the session's save all name
+/// this one number, 300 MB (raised from 32 MB; a model that takes less still
+/// refuses what it cannot take).
+public let apelinMaximumAttachmentBytes = 300 * 1024 * 1024
+
 public extension ApelinService {
     func agentAccountBalance(provider: AgentProvider) async throws -> AgentAccountBalanceResponse {
         try await send(AgentAccountBalanceRequest(provider: provider))

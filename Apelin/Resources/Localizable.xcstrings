@@ -20208,7 +20208,7 @@
         }
       }
     },
-    "Choose a file smaller than 32 MB." : {
+    "Choose a file smaller than 300 MB." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -20219,13 +20219,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle eine Datei unter 32 MB."
+            "value" : "Wähle eine Datei unter 300 MB."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige un archivo de menos de 32 MB."
+            "value" : "Elige un archivo de menos de 300 MB."
           }
         },
         "fr" : {
@@ -20237,25 +20237,25 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli un file più piccolo di 32 MB."
+            "value" : "Scegli un file più piccolo di 300 MB."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB未満のファイルを選択してください。"
+            "value" : "300 MB未満のファイルを選択してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB보다 작은 파일을 선택하세요."
+            "value" : "300 MB보다 작은 파일을 선택하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha um arquivo com menos de 32 MB."
+            "value" : "Escolha um arquivo com menos de 300 MB."
           }
         },
         "ru" : {
@@ -20267,19 +20267,19 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn tệp nhỏ hơn 32 MB."
+            "value" : "Chọn tệp nhỏ hơn 300 MB."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请选择小于 32 MB 的文件。"
+            "value" : "请选择小于 300 MB 的文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請選擇小於 32 MB 的檔案。"
+            "value" : "請選擇小於 300 MB 的檔案。"
           }
         }
       }
@@ -20527,7 +20527,7 @@
         }
       }
     },
-    "Choose a regular file smaller than 32 MB." : {
+    "Choose a regular file smaller than 300 MB." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -20538,13 +20538,13 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle eine normale Datei unter 32 MB."
+            "value" : "Wähle eine normale Datei unter 300 MB."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige un archivo normal de menos de 32 MB."
+            "value" : "Elige un archivo normal de menos de 300 MB."
           }
         },
         "fr" : {
@@ -20556,25 +20556,25 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli un file normale più piccolo di 32 MB."
+            "value" : "Scegli un file normale più piccolo di 300 MB."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB未満の通常ファイルを選択してください。"
+            "value" : "300 MB未満の通常ファイルを選択してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB보다 작은 일반 파일을 선택하세요."
+            "value" : "300 MB보다 작은 일반 파일을 선택하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha um arquivo comum com menos de 32 MB."
+            "value" : "Escolha um arquivo comum com menos de 300 MB."
           }
         },
         "ru" : {
@@ -20586,19 +20586,19 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn tệp thông thường nhỏ hơn 32 MB."
+            "value" : "Chọn tệp thông thường nhỏ hơn 300 MB."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请选择小于 32 MB 的普通文件。"
+            "value" : "请选择小于 300 MB 的普通文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請選擇小於 32 MB 的一般檔案。"
+            "value" : "請選擇小於 300 MB 的一般檔案。"
           }
         }
       }
@@ -20686,7 +20686,7 @@
         }
       }
     },
-    "Choose an image smaller than 32 MB." : {
+    "Choose an image smaller than 300 MB." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
@@ -20698,19 +20698,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Wähle ein Bild unter 32 MB."
+            "value" : "Wähle ein Bild unter 300 MB."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Choose an image smaller than 32 MB."
+            "value" : "Choose an image smaller than 300 MB."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Elige una imagen de menos de 32 MB."
+            "value" : "Elige una imagen de menos de 300 MB."
           }
         },
         "fr" : {
@@ -20722,25 +20722,25 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Scegli un’immagine più piccola di 32 MB."
+            "value" : "Scegli un’immagine più piccola di 300 MB."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB未満の画像を選択してください。"
+            "value" : "300 MB未満の画像を選択してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "32 MB보다 작은 이미지를 선택하세요."
+            "value" : "300 MB보다 작은 이미지를 선택하세요."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Escolha uma imagem com menos de 32 MB."
+            "value" : "Escolha uma imagem com menos de 300 MB."
           }
         },
         "ru" : {
@@ -20752,19 +20752,19 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chọn hình ảnh nhỏ hơn 32 MB."
+            "value" : "Chọn hình ảnh nhỏ hơn 300 MB."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "请选择小于 32 MB 的图片。"
+            "value" : "请选择小于 300 MB 的图片。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "請選擇小於 32 MB 的影像。"
+            "value" : "請選擇小於 300 MB 的影像。"
           }
         }
       }
@@ -86842,7 +86842,7 @@
         }
       }
     },
-    "Send up to 8 files, each no larger than 32 MB." : {
+    "Send up to 8 files, each no larger than 300 MB." : {
       "extractionState" : "manual",
       "localizations" : {
         "ar" : {
@@ -86854,19 +86854,19 @@
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sende bis zu 8 Dateien mit jeweils höchstens 32 MB."
+            "value" : "Sende bis zu 8 Dateien mit jeweils höchstens 300 MB."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Send up to 8 files, each no larger than 32 MB."
+            "value" : "Send up to 8 files, each no larger than 300 MB."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Envía hasta 8 archivos de 32 MB como máximo cada uno."
+            "value" : "Envía hasta 8 archivos de 300 MB como máximo cada uno."
           }
         },
         "fr" : {
@@ -86878,25 +86878,25 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Invia fino a 8 file, ciascuno di massimo 32 MB."
+            "value" : "Invia fino a 8 file, ciascuno di massimo 300 MB."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一度に送信できるファイルは8個までで、それぞれ32 MB以下です。"
+            "value" : "一度に送信できるファイルは8個までで、それぞれ300 MB以下です。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "파일은 최대 8개까지 보낼 수 있으며, 각 파일은 32 MB 이하여야 합니다."
+            "value" : "파일은 최대 8개까지 보낼 수 있으며, 각 파일은 300 MB 이하여야 합니다."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Envie até 8 arquivos, cada um com no máximo 32 MB."
+            "value" : "Envie até 8 arquivos, cada um com no máximo 300 MB."
           }
         },
         "ru" : {
@@ -86908,19 +86908,19 @@
         "vi" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Gửi tối đa 8 tệp, mỗi tệp không quá 32 MB."
+            "value" : "Gửi tối đa 8 tệp, mỗi tệp không quá 300 MB."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "每次最多发送 8 个文件，每个文件不超过 32 MB。"
+            "value" : "每次最多发送 8 个文件，每个文件不超过 300 MB。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "一次最多可傳送 8 個檔案，每個檔案不超過 32 MB。"
+            "value" : "一次最多可傳送 8 個檔案，每個檔案不超過 300 MB。"
           }
         }
       }

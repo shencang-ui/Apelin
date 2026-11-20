@@ -587,7 +587,7 @@ final class ChatRuntime {
             return cached
         }
         guard let size = try? URL(fileURLWithPath: path).resourceValues(forKeys: [.fileSizeKey]).fileSize,
-              size <= 32 * 1024 * 1024, let data = try? Data(contentsOf: URL(fileURLWithPath: path))
+              size <= apelinMaximumAttachmentBytes, let data = try? Data(contentsOf: URL(fileURLWithPath: path))
         else { return nil }
         let isText = item.mimeType.hasPrefix("text/")
             || UTType(mimeType: item.mimeType)?.conforms(to: .text) == true
@@ -723,8 +723,11 @@ final class ChatRuntime {
         }
         defer { try? FileManager.default.removeItem(at: staging) }
         for file in draft.attachments {
-            guard descriptors.count < 8, file.data.count <= 32 * 1024 * 1024 else {
-                throw ApelinError(.badRequest, String(localized: "Send up to 8 files, each no larger than 32 MB."))
+            guard descriptors.count < 8, file.data.count <= apelinMaximumAttachmentBytes else {
+                throw ApelinError(
+                    .badRequest,
+                    String(localized: "Send up to 8 files, each no larger than 300 MB."),
+                )
             }
             let url = staging.appendingPathComponent(file.id.uuidString)
             try file.data.write(to: url, options: .atomic)
