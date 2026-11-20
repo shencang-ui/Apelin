@@ -374,8 +374,8 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                 guard let self else { return }
                 guard balance.known, let value = balance.balance else {
                     self.presentNotice(
-                        title: provider.displayName,
-                        message: String(localized: "This account has no balance this app can read."),
+                        title: String.LocalizationValue(provider.displayName),
+                        message: String.LocalizationValue("This account has no balance this app can read."),
                     )
                     return
                 }
@@ -387,7 +387,7 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                         localized: "Earliest package ends \(expiresAt.formatted(date: .abbreviated, time: .omitted))",
                     )
                 }
-                self.presentNotice(title: provider.displayName, message: message)
+                self.presentNotice(title: String.LocalizationValue(provider.displayName), message: message)
             } catch {
                 self?.presentNotice(title: "Unable to Read Balance", message: error.readableMessage)
             }
@@ -406,7 +406,9 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                     ProviderBalanceCache.expire(for: provider)
                 }
                 self?.presentNotice(
-                    title: response.succeeded ? provider.displayName : "Check-in",
+                    title: response.succeeded
+                        ? String.LocalizationValue(provider.displayName)
+                        : String.LocalizationValue("Check-in"),
                     message: response.message,
                 )
             } catch {

@@ -33,7 +33,7 @@ final class ComposerChoiceSheet: UIViewController {
         var subtitle: String?
         var choices: [Choice]
 
-        init(title: String?, subtitle: String? = nil, choices: [Choice]) {
+        init(title: String? = nil, subtitle: String? = nil, choices: [Choice]) {
             self.title = title
             self.subtitle = subtitle
             self.choices = choices

@@ -114,7 +114,7 @@ final class ChatController: UIViewController {
     @objc private dynamic weak var modelSheet: ComposerChoiceSheet?
     /// The accounts the open model sheet was built from, so a balance that
     /// lands while it is up redraws the same groups with the numbers in.
-    @objc private dynamic var modelSheetAccounts: [AgentAccount]?
+    private var modelSheetAccounts: [AgentAccount]?
     private static let modelLogger = Logger(subsystem: "wiki.qaq.apelin", category: "ModelPicker")
     private var selectionCheck: Task<Void, Never>?
     private var attachmentImport: ComposerAttachmentImport?
@@ -1238,7 +1238,7 @@ final class ChatController: UIViewController {
     /// Every failure is silent: a meter that says nothing costs the sheet
     /// nothing, and the next opening tries again. A provider with no meter
     /// this reads is never asked.
-    @objc private dynamic func refreshBalanceCache(
+    private func refreshBalanceCache(
         for accounts: [AgentAccount],
         sheet: ComposerChoiceSheet,
         id: UUID,
