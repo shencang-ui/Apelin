@@ -391,7 +391,7 @@ enum AccountMeter {
             let granted = (root["hard_limit_usd"] as? NSNumber)?.doubleValue
                 ?? Double(root["hard_limit_usd"] as? String ?? "")
             let used = (root["total_usage"] as? NSNumber)?.doubleValue
-                ?? Double(root["total_usage"] as? String ?? "")
+                ?? Double(root["total_usage"] as? String ?? "") ?? 0
             guard let granted else { continue }
             return AgentAccountBalance(known: true, balance: granted - used, unit: "USD")
         }
