@@ -43,6 +43,40 @@ public enum ProviderRegistration {
             try await registerStored(storeId: storeID, manager: manager, modelOverride: modelOverride)
         }
         guard let resolved = registered else { return nil }
+        // A WorkBuddy model's record comes from the bundled rows, which say
+        // nothing for several the live config marks as thinking —
+        // `deepseek-v4.1-flash` among them — and a chat only carries
+        // `reasoning_effort` when the record says it reasons. What the last
+        // config fetch kept is applied here, and a cold cache asks for one
+        // behind the chat, so the next message runs with the levels.
+        if WorkBuddyEffortCache.isWorkBuddy(storeID: storeID),
+           let levels = WorkBuddyEffortCache.shared.staleEfforts(for: storeID)
+        {
+            var model = resolved.model
+            if let own = levels[model.id], !own.isEmpty {
+                model.reasoning = true
+                var map: [String: String?] = [:]
+                for level in ["off", "minimal", "low", "medium", "high", "xhigh", "max"] {
+                    if own.contains(where: { $0.rawValue == level }) {
+                        map[level] = level == "off" ? "none" : level
+                    } else if model.thinkingLevelMap?[level] != nil {
+                        map[level] = model.thinkingLevelMap?[level] ?? nil
+                    }
+                }
+                if !own.contains(where: { $0.rawValue == "off" }) {
+                    map["off"] = nil
+                }
+                model.thinkingLevelMap = map
+            }
+            WorkBuddyEffortRefresher.refresh(siteID: storeID, credentials: credentials)
+            return ResolvedAuth(
+                model: model,
+                modelLabel: resolved.modelLabel,
+                authResolver: resolved.authResolver,
+                providerSlots: resolved.providerSlots,
+                authResolvers: resolved.authResolvers,
+            )
+        }
         // A model the endpoint's own record does not describe is read against
         // the catalogs: a relay's `cn:deepseek-v4.1-flash` is DeepSeek's model,
         // with its window, its ceiling and its images. An endpoint whose
