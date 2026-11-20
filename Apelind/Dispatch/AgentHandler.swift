@@ -109,6 +109,11 @@ enum AgentHandler: DomainHandler {
         case .agentCredentialImport, .agentAccountList, .agentSkillList, .agentRewritePrompt,
              .agentAPIConfiguration, .agentModelList, .agentSignOut:
             return await host.forward(request, to: .agent, instance: credentialInstance)
+        // A balance read and a check-in ask the same worker, whose keychain
+        // group the sessions read: the credentials never leave it, and what
+        // comes back is a balance and a message, never a token.
+        case .agentAccountBalance, .agentAccountCheckin:
+            return await host.forward(request, to: .agent, instance: credentialInstance)
         // The probe runs for up to a minute: a task, so the page shows each
         // stage as it happens instead of only the report at the end.
         case .agentModelTest:

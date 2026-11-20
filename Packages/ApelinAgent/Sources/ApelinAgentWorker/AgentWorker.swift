@@ -11,7 +11,9 @@ import KWWKAI
 /// executable, spawned as the `credential-import` instance, serves
 /// `agentCredentialImport` and the accounts: `agentAccountList`,
 /// `agentSignIn` (a `signIn` task), `agentSignInRespond`, its cancel and
-/// `agentSignOut` (`AccountDesk`), and Settings ▸ Skills' `agentSkillList`.
+/// `agentSignOut` (`AccountDesk`), `agentAccountBalance` and
+/// `agentAccountCheckin` (`AccountMeter`), and Settings ▸ Skills'
+/// `agentSkillList`.
 ///
 /// The session's events go to the host as the events of its `agent` task.
 public enum AgentWorker {
@@ -21,6 +23,12 @@ public enum AgentWorker {
 
     /// Sign-ins and the accounts list, against the keychain the sessions read.
     static let accounts = AccountDesk(store: KeychainCredentialSource(accessGroup: keychainAccessGroup))
+
+    /// The stored credentials of one signed-in provider, for the operations
+    /// that spend them where they live: a balance read, a check-in.
+    private static func credentials(for provider: AgentProvider) async throws -> OAuthCredentials? {
+        try await KeychainCredentialSource(accessGroup: keychainAccessGroup).credentials(for: provider.storeID)
+    }
 
     public static func main() -> Never {
         let state = WorkerState()
@@ -306,6 +314,20 @@ public enum AgentWorker {
             await WorkerMain.serve(AgentSignOutRequest.self, request) { signOut in
                 try await accounts.signOut(signOut.provider)
                 return Acknowledged()
+            }
+        case .agentAccountBalance:
+            await WorkerMain.serve(AgentAccountBalanceRequest.self, request) { balance in
+                guard let credentials = try await credentials(for: balance.provider) else {
+                    throw ApelinError(.notFound, "Sign in to the provider first.")
+                }
+                return AgentAccountBalanceResponse(balance: await AccountMeter.balance(balance.provider, credentials: credentials))
+            }
+        case .agentAccountCheckin:
+            await WorkerMain.serve(AgentAccountCheckinRequest.self, request) { checkin in
+                guard let credentials = try await credentials(for: checkin.provider) else {
+                    throw ApelinError(.notFound, "Sign in to the provider first.")
+                }
+                return await AccountMeter.checkin(checkin.provider, credentials: credentials)
             }
         default:
             WorkerMain.unimplemented(request)
