@@ -24,7 +24,11 @@ permissions:
 jobs:
   build-and-publish:
     name: Build and publish ${{ github.event.inputs.bootstrap || 'roothide' }}
-    runs-on: macos-latest
+    # GitHub's own Xcode 27 image, not the fork's self-hosted one: it carries
+    # Xcode 27.0/27.1/27.2 with the iOS 27.0–27.2 SDKs, which the Makefile's
+    # sdk-tier gate requires (macos-latest tops out at Xcode 26.6 and answers
+    # the gate's exit 69 in seconds).
+    runs-on: xcode-27
     timeout-minutes: 75
 
     steps:
