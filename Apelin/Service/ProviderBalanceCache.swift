@@ -1,3 +1,4 @@
+import ApelinCore
 import ApelinProtocol
 import Foundation
 
@@ -8,6 +9,15 @@ import Foundation
 /// provider's meter said and when they were read. A read older than ten
 /// minutes is stale: the sheet shows it and asks for a new one beside it.
 enum ProviderBalanceCache {
+    /// One stored balance, tagged with its provider: the shape the list on
+    /// disk carries, read one entry at a time through `PreservedList`, so an
+    /// entry another version wrote badly is kept as it was and written back
+    /// with the rest instead of taking them all down.
+    private struct Entry: Codable {
+        var provider: String
+        var balance: AgentAccountBalance
+    }
+
     private static let defaultsKey = "apelin.providerBalances"
     private static let maxAge: TimeInterval = 10 * 60
 
@@ -18,7 +28,7 @@ enum ProviderBalanceCache {
     /// last one has gone stale.
     static func balance(for provider: AgentProvider) -> AgentAccountBalance? {
         queue.sync {
-            guard let balance = memory[provider.rawValue] ?? readStored()[provider.rawValue],
+            guard let balance = memory[provider.rawValue] ?? readStoredList().last(where: { $0.provider == provider.rawValue })?.balance,
                   Date().timeIntervalSince(balance.readAt) < maxAge
             else { return nil }
             return balance
@@ -28,9 +38,10 @@ enum ProviderBalanceCache {
     static func store(_ balance: AgentAccountBalance, for provider: AgentProvider) {
         queue.sync {
             memory[provider.rawValue] = balance
-            var stored = readStored()
-            stored[provider.rawValue] = balance
-            writeStored(stored)
+            var entries = readStoredList()
+            entries.removeAll { $0.provider == provider.rawValue }
+            entries.append(Entry(provider: provider.rawValue, balance: balance))
+            writeStored(entries)
         }
     }
 
@@ -38,9 +49,8 @@ enum ProviderBalanceCache {
     static func expire(for provider: AgentProvider) {
         queue.sync {
             memory[provider.rawValue] = nil
-            var stored = readStored()
-            stored[provider.rawValue] = nil
-            writeStored(stored)
+            let entries = readStoredList().filter { $0.provider != provider.rawValue }
+            writeStored(entries)
         }
     }
 
@@ -66,13 +76,23 @@ enum ProviderBalanceCache {
 
     // MARK: - Storage
 
-    private static func readStored() -> [String: AgentAccountBalance] {
-        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else { return [:] }
-        return (try? JSONDecoder().decode([String: AgentAccountBalance].self, from: data)) ?? [:]
+    /// The stored list, one entry at a time: an entry that does not decode
+    /// stays in `PreservedList`'s `unreadable` and is written back unchanged,
+    /// never allowed to blank the rest. A blob that is not a list at all — a
+    /// hand edit, or a shape another version wrote — answers empty: what was
+    /// in it is gone from the cache, and what the cache keeps is only the
+    /// last meter read, which the next stale check asks for again. No
+    /// credential rides in it.
+    private static func readStoredList() -> [Entry] {
+        guard let data = UserDefaults.standard.data(forKey: defaultsKey) else { return [] }
+        guard let list = try? JSONDecoder().decode(PreservedList<Entry>.self, from: data) else {
+            return []
+        }
+        return list.items
     }
 
-    private static func writeStored(_ balances: [String: AgentAccountBalance]) {
-        guard let data = try? JSONEncoder().encode(balances) else { return }
+    private static func writeStored(_ entries: [Entry]) {
+        guard let data = try? JSONEncoder().encode(PreservedList(entries)) else { return }
         UserDefaults.standard.set(data, forKey: defaultsKey)
     }
 }
