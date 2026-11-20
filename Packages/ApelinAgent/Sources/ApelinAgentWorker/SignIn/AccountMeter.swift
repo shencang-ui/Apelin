@@ -63,10 +63,12 @@ enum AccountMeter {
     }
 
     /// The provider's daily check-in. WorkBuddy only; the answer's message
-    /// is what the settings page shows.
+    /// is what the settings page shows. A provider outside WorkBuddy's two
+    /// builds is refused by its store id — the app side carries the display
+    /// names, this worker does not.
     static func checkin(_ provider: AgentProvider, credentials: OAuthCredentials) async throws -> AgentAccountCheckinResponse {
         guard let site = WorkBuddySite.site(id: provider.storeID) else {
-            throw ApelinError(.badRequest, "\(provider.displayName) has no check-in of its own.")
+            throw ApelinError(.badRequest, "\(provider.rawValue) has no check-in of its own.")
         }
         do {
             return try await workBuddyCheckin(site: site, credentials: credentials)
@@ -312,7 +314,7 @@ enum AccountMeter {
     /// endpoints sit on the provider's own host, never under a key's saved
     /// base URL: that names a relay's model endpoint, which serves no meter.
     private static func apiKeyBalance(provider: AgentProvider, credentials: OAuthCredentials) async throws -> AgentAccountBalance {
-        let request: URLRequest
+        var request: URLRequest
         switch provider {
         case .deepSeek:
             guard let url = URL(string: "https://api.deepseek.com/user/balance") else { return AgentAccountBalance(known: false) }

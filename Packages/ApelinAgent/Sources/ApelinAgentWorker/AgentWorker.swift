@@ -327,7 +327,7 @@ public enum AgentWorker {
                 guard let credentials = try await credentials(for: checkin.provider) else {
                     throw ApelinError(.notFound, "Sign in to the provider first.")
                 }
-                return await AccountMeter.checkin(checkin.provider, credentials: credentials)
+                return try await AccountMeter.checkin(checkin.provider, credentials: credentials)
             }
         default:
             WorkerMain.unimplemented(request)
