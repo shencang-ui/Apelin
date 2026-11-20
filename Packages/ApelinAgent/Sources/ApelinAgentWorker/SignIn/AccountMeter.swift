@@ -337,46 +337,54 @@ enum AccountMeter {
             // A compatible endpoint without a saved base has nowhere to ask.
             return AgentAccountBalance(known: false)
         }
-        let path: String
-        switch provider {
-        case .deepSeek: path = "/user/balance"
-        case .openRouter: path = "/api/v1/credits"
-        case .openAI, .openAICompatible, .openAICompatibleEndpoint: path = "/dashboard/billing/subscription"
-        default: return AgentAccountBalance(known: false)
-        }
         // DeepSeek and OpenRouter's meters sit on their own hosts, never
         // under a relay: a saved base names a model endpoint, not a meter.
         // An OpenAI-compatible endpoint IS the relay — its base is the one
-        // host its meter answers on, the way one-api/new-api panels do.
-        let urlString: String
+        // host its meter answers on. The billing path comes in two spellings
+        // across panels (`/dashboard/…` on OpenAI and one-api's older builds,
+        // `/v1/dashboard/…` on new-api and kin), tried in that order, the
+        // first that answers JSON with a grant winning.
+        let meterURLs: [String]
         switch provider {
-        case .deepSeek: urlString = "https://api.deepseek.com" + path
-        case .openRouter: urlString = "https://openrouter.ai" + path
+        case .deepSeek: meterURLs = ["https://api.deepseek.com/user/balance"]
+        case .openRouter: meterURLs = ["https://openrouter.ai/api/v1/credits"]
         case .openAI, .openAICompatible, .openAICompatibleEndpoint:
-            urlString = meterHost.trimmedSlashes + path
+            let root = meterHost.trimmedSlashes
+            meterURLs = [root + "/dashboard/billing/subscription", root + "/v1/dashboard/billing/subscription"]
         default: return AgentAccountBalance(known: false)
         }
-        guard let url = URL(string: urlString) else { return AgentAccountBalance(known: false) }
-        var request = URLRequest(url: url, timeoutInterval: 20)
-        request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse else {
-            throw ApelinError(.unavailable, "The provider did not answer.")
-        }
-        guard http.statusCode == 200, let root = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            throw ApelinError(.unavailable, "HTTP \(http.statusCode)")
-        }
-        if provider == .deepSeek {
-            // {is_available, balance_infos: [{total_balance, currency}]}
-            let infos = root["balance_infos"] as? [[String: Any]] ?? []
-            guard let first = infos.first,
-                  let total = Double(first["total_balance"] as? String ?? (first["total_balance"] as? NSNumber)?.stringValue ?? "")
-            else { return AgentAccountBalance(known: false) }
-            let currency = first["currency"] as? String
-            return AgentAccountBalance(known: true, balance: total, unit: currency)
-        }
-        if provider == .openAI || provider.kind == .openAICompatible {
+        for urlString in meterURLs {
+            guard let url = URL(string: urlString) else { continue }
+            var request = URLRequest(url: url, timeoutInterval: 20)
+            request.setValue("Bearer \(credentials.access)", forHTTPHeaderField: "Authorization")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            let (data, response): (Data, URLResponse)
+            do {
+                (data, response) = try await URLSession.shared.data(for: request)
+            } catch {
+                continue
+            }
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+            else { continue }
+            if provider == .deepSeek {
+                // {is_available, balance_infos: [{total_balance, currency}]}
+                let infos = root["balance_infos"] as? [[String: Any]] ?? []
+                guard let first = infos.first,
+                      let total = Double(first["total_balance"] as? String ?? (first["total_balance"] as? NSNumber)?.stringValue ?? "")
+                else { return AgentAccountBalance(known: false) }
+                let currency = first["currency"] as? String
+                return AgentAccountBalance(known: true, balance: total, unit: currency)
+            }
+            if provider == .openRouter {
+                // {data: {total_credits, total_usage}}
+                let node = root["data"] as? [String: Any] ?? [:]
+                guard let credits = (node["total_credits"] as? NSNumber)?.doubleValue else {
+                    return AgentAccountBalance(known: false)
+                }
+                let usage = (node["total_usage"] as? NSNumber)?.doubleValue ?? 0
+                return AgentAccountBalance(known: true, balance: credits - usage, unit: "USD")
+            }
             // The legacy meter: {hard_limit_usd, total_usage (granted, used)}.
             // A relay answers it with its own grant; OpenAI itself answers
             // 401 to a normal key now, which lands as unknown upstream.
@@ -384,20 +392,10 @@ enum AccountMeter {
                 ?? Double(root["hard_limit_usd"] as? String ?? "")
             let used = (root["total_usage"] as? NSNumber)?.doubleValue
                 ?? Double(root["total_usage"] as? String ?? "")
-            guard let granted else { return AgentAccountBalance(known: false) }
+            guard let granted else { continue }
             return AgentAccountBalance(known: true, balance: granted - used, unit: "USD")
         }
-        // {data: {total_credits, total_usage}}
-        let node = root["data"] as? [String: Any] ?? [:]
-        guard let credits = (node["total_credits"] as? NSNumber)?.doubleValue else {
-            return AgentAccountBalance(known: false)
-        }
-        let usage = (node["total_usage"] as? NSNumber)?.doubleValue ?? 0
-        return AgentAccountBalance(
-            known: true,
-            balance: credits - usage,
-            unit: "USD",
-        )
+        return AgentAccountBalance(known: false)
     }
 }
 
