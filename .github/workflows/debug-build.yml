@@ -24,7 +24,7 @@ permissions:
 jobs:
   build-and-publish:
     name: Build and publish ${{ github.event.inputs.bootstrap || 'roothide' }}
-    runs-on: xcode-27
+    runs-on: macos-latest
     timeout-minutes: 75
 
     steps:
@@ -33,10 +33,20 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Select Xcode 27.1
+      # The fork has no self-hosted xcode-27 runner: the image's newest Xcode
+      # is what the build gets. The selector below takes the highest version
+      # installed and says which one it picked, so a runner image that has
+      # moved on still works without editing this file.
+      - name: Select the newest Xcode on the runner
         run: |
           set -euo pipefail
-          sudo xcode-select -s /Applications/Xcode_27.1.app/Contents/Developer
+          newest="$(ls -d /Applications/Xcode*.app 2>/dev/null | sort -V | tail -n 1)"
+          if [[ -z "$newest" ]]; then
+            echo "::error::the runner image has no Xcode under /Applications"
+            exit 1
+          fi
+          echo "Using $newest"
+          sudo xcode-select -s "$newest/Contents/Developer"
           xcodebuild -version
           echo "iPhoneOS SDK $(xcrun --sdk iphoneos --show-sdk-version)"
 
@@ -259,6 +269,51 @@ jobs:
           if-no-files-found: ignore
           retention-days: 30
 
+      # Every build's packages also land as a public pre-release, tagged
+      # deb-<run number>: the one way to install this fork's build on a
+      # device without signing in to GitHub, since downloading a run's
+      # artifacts needs an account. The asset carries the bootstrap's name,
+      # so a run packages for one bootstrap and replaces that one's asset.
+      - name: Publish the packages as a pre-release
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: deb-${{ github.run_number }}
+          BOOTSTRAP: ${{ github.event.inputs.bootstrap || 'roothide' }}
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          packages=(build/Packages/*.deb)
+          if (( ${#packages[@]} == 0 )); then
+            echo "::error::the build produced no .deb to publish"
+            exit 1
+          fi
+          assets=()
+          for package in "${packages[@]}"; do
+            renamed="apelin-${BOOTSTRAP}-$(basename "$package")"
+            cp "$package" "$RUNNER_TEMP/$renamed"
+            assets+=("$RUNNER_TEMP/$renamed")
+          done
+          notes="$RUNNER_TEMP/notes.md"
+          {
+            printf 'Packages built from commit %s (run #%s, %s bootstrap).\n\n' "$GITHUB_SHA" "$GITHUB_RUN_NUMBER" "$BOOTSTRAP"
+            printf 'This is an automated build, published as a pre-release so the .deb can be downloaded without a GitHub account. A manual run with a `Documents/Releases/<version>.md` notes file makes the versioned releases instead.\n'
+          } > "$notes"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${assets[@]}" --clobber
+            gh release edit "$TAG" --prerelease --notes-file "$notes"
+            echo "::notice::updated $TAG with ${#assets[@]} asset(s)"
+          else
+            gh release create "$TAG" "${assets[@]}" \
+              --prerelease \
+              --title "Automated build deb-${GITHUB_RUN_NUMBER}" \
+              --notes-file "$notes" \
+              --target "$GITHUB_SHA"
+            echo "::notice::created pre-release $TAG with ${#assets[@]} asset(s)"
+          fi
+
       - name: Report a failed build or publish
         if: failure()
         shell: bash
@@ -277,5 +332,5 @@ jobs:
             echo '```'
           } > "$body"
           gh issue create \
-            --title "Debug build or publish failed: ${GITHUB_SHA:0:8} (${{ inputs.bootstrap }})" \
+            --title "Debug build or publish failed: ${GITHUB_SHA:0:8} (${{ github.event.inputs.bootstrap || 'roothide' }})" \
             --body-file "$body" > /dev/null 2>&1 || true
