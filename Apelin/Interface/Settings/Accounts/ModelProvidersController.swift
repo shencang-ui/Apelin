@@ -247,7 +247,28 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
     }
 
     private func accountActions(_ account: AgentAccount) -> [UIMenuElement] {
-        [
+        var actions: [UIMenuElement] = []
+        // A balance and a check-in, where the provider has them: the meter
+        // is asked in apelin-agent and the numbers come back here, the
+        // check-in signs and says what it did. Neither ever carries a
+        // credential back.
+        if account.signedIn, account.provider.supportsBalance {
+            actions.append(UIAction(
+                title: String(localized: "Check Balance"),
+                image: UIImage(systemName: "creditcard"),
+            ) { [weak self] _ in
+                self?.readBalance(account)
+            })
+        }
+        if account.signedIn, account.provider.supportsCheckin {
+            actions.append(UIAction(
+                title: String(localized: "Daily Check-in"),
+                image: UIImage(systemName: "checkmark.seal"),
+            ) { [weak self] _ in
+                self?.checkIn(account)
+            })
+        }
+        actions.append(contentsOf: [
             UIAction(
                 title: String(localized: "Edit"),
                 image: UIImage(systemName: account.isAPIKeyAccount ? "pencil" : "arrow.clockwise"),
@@ -275,7 +296,8 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                     self?.confirmSignOut(account)
                 },
             ]),
-        ]
+        ])
+        return actions
     }
 
     override func tableView(_: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
@@ -333,6 +355,62 @@ final class ModelProvidersController: TableController, UISearchResultsUpdating {
                 self?.load()
             } catch {
                 self?.presentNotice(title: "Unable to Sign Out", message: error.readableMessage)
+            }
+        }
+    }
+
+    // MARK: - Balance and check-in
+
+    /// Reads the account's balance where its credentials live and says what
+    /// came back: the balance and its unit, or the words the meter answered.
+    /// The read is cached, so the model sheet shows it too.
+    private func readBalance(_ account: AgentAccount) {
+        let provider = account.provider
+        Task { [weak self] in
+            do {
+                let response = try await ApelinService.app.agentAccountBalance(provider: provider)
+                guard let balance = response.balance else { return }
+                ProviderBalanceCache.store(balance, for: provider)
+                guard let self else { return }
+                guard balance.known, let value = balance.balance else {
+                    self.presentNotice(
+                        title: provider.displayName,
+                        message: String(localized: "This account has no balance this app can read."),
+                    )
+                    return
+                }
+                let amount = value.formatted(.number.precision(.fractionLength(0...2)))
+                let unit = balance.unit ?? ""
+                var message = unit.isEmpty ? amount : "\(amount) \(unit)"
+                if let expiresAt = balance.expiresAt {
+                    message += "\n" + String(
+                        localized: "Earliest package ends \(expiresAt.formatted(date: .abbreviated, time: .omitted))",
+                    )
+                }
+                self.presentNotice(title: provider.displayName, message: message)
+            } catch {
+                self?.presentNotice(title: "Unable to Read Balance", message: error.readableMessage)
+            }
+        }
+    }
+
+    /// Signs the provider's daily check-in and says what it did: a success,
+    /// an "already", or the provider's own refusal. A success expires the
+    /// cached balance, which the check-in may have changed.
+    private func checkIn(_ account: AgentAccount) {
+        let provider = account.provider
+        Task { [weak self] in
+            do {
+                let response = try await ApelinService.app.agentAccountCheckin(provider: provider)
+                if response.succeeded {
+                    ProviderBalanceCache.expire(for: provider)
+                }
+                self?.presentNotice(
+                    title: response.succeeded ? provider.displayName : "Check-in",
+                    message: response.message,
+                )
+            } catch {
+                self?.presentNotice(title: "Unable to Check In", message: error.readableMessage)
             }
         }
     }
