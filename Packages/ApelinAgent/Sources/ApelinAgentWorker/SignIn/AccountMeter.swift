@@ -327,29 +327,33 @@ enum AccountMeter {
         }
         let meterHost: String
         switch provider {
-        case .openAI:
-            meterHost = configured ?? "https://api.openai.com"
+        case .openAI, .openAICompatible, .openAICompatibleEndpoint:
+            meterHost = configured ?? (provider == .openAI ? "https://api.openai.com" : "")
         default:
             meterHost = configured ?? ""
         }
         guard let base = URLComponents(string: meterHost), base.host != nil else {
             // A meter host that does not parse is not a failure of the key.
-            if provider == .openAI { return AgentAccountBalance(known: false) }
+            // A compatible endpoint without a saved base has nowhere to ask.
+            return AgentAccountBalance(known: false)
         }
         let path: String
         switch provider {
         case .deepSeek: path = "/user/balance"
         case .openRouter: path = "/api/v1/credits"
-        case .openAI: path = "/dashboard/billing/subscription"
+        case .openAI, .openAICompatible, .openAICompatibleEndpoint: path = "/dashboard/billing/subscription"
         default: return AgentAccountBalance(known: false)
         }
         // DeepSeek and OpenRouter's meters sit on their own hosts, never
         // under a relay: a saved base names a model endpoint, not a meter.
+        // An OpenAI-compatible endpoint IS the relay — its base is the one
+        // host its meter answers on, the way one-api/new-api panels do.
         let urlString: String
         switch provider {
         case .deepSeek: urlString = "https://api.deepseek.com" + path
         case .openRouter: urlString = "https://openrouter.ai" + path
-        case .openAI: urlString = meterHost.trimmedSlashes + path
+        case .openAI, .openAICompatible, .openAICompatibleEndpoint:
+            urlString = meterHost.trimmedSlashes + path
         default: return AgentAccountBalance(known: false)
         }
         guard let url = URL(string: urlString) else { return AgentAccountBalance(known: false) }
@@ -372,7 +376,7 @@ enum AccountMeter {
             let currency = first["currency"] as? String
             return AgentAccountBalance(known: true, balance: total, unit: currency)
         }
-        if provider == .openAI {
+        if provider == .openAI || provider.kind == .openAICompatible {
             // The legacy meter: {hard_limit_usd, total_usage (granted, used)}.
             // A relay answers it with its own grant; OpenAI itself answers
             // 401 to a normal key now, which lands as unknown upstream.

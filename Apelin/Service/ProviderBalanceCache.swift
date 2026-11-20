@@ -99,12 +99,18 @@ enum ProviderBalanceCache {
 
 public extension AgentProvider {
     /// Whether a balance read has somewhere to read from: the WorkBuddy
-    /// builds' meter, and the two key providers whose meters the app reads
-    /// on their own hosts. An Anthropic OAuth seat or a Copilot plan has no
-    /// meter this reads, and a further OpenAI-compatible endpoint names no
-    /// balance endpoint of its own.
+    /// builds' meter, DeepSeek's and OpenRouter's own hosts, and the OpenAI
+    /// meters — OpenAI's own and any OpenAI-compatible endpoint's, whose
+    /// base URL is the host its panel answers the billing call on. An
+    /// Anthropic OAuth seat or a Copilot plan has no meter this reads.
     var supportsBalance: Bool {
-        self == .workBuddy || self == .workBuddyAI || self == .deepSeek || self == .openRouter
+        if case .openAICompatibleEndpoint = self { return true }
+        switch self {
+        case .workBuddy, .workBuddyAI, .deepSeek, .openRouter, .openAI, .openAICompatible:
+            true
+        default:
+            false
+        }
     }
 
     /// Whether the provider runs a daily check-in to sign.
