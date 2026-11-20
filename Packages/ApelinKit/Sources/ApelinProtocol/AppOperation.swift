@@ -94,6 +94,11 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
     case agentSignInRespond
     case agentSignInCancel
     case agentSignOut
+    /// An account's balance or credits, read where its credentials live
+    /// (`AgentBalance`).
+    case agentAccountBalance
+    /// A provider's daily check-in, where the provider has one.
+    case agentAccountCheckin
     /// The reader's changes to a conversation's history (`AgentHistory`).
     case agentRewind
     case agentEditMessage
@@ -197,6 +202,7 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
              .agentRewritePrompt, .agentModelTest,
              .agentAPIConfiguration, .agentModelList,
              .agentModelActivate, .agentSignIn, .agentSignInRespond, .agentSignInCancel, .agentSignOut,
+             .agentAccountBalance, .agentAccountCheckin,
              .agentRewind, .agentEditMessage, .agentDeleteReply, .agentFork:
             .agent
         case .toolHostOpen, .toolHostClose, .toolHostCall: .toolHost
@@ -292,6 +298,8 @@ public enum AppOperation: String, Codable, CaseIterable, Sendable {
         case .agentSignInRespond: AgentSignInRespondRequest.self
         case .agentSignInCancel: AgentSignInCancelRequest.self
         case .agentSignOut: AgentSignOutRequest.self
+        case .agentAccountBalance: AgentAccountBalanceRequest.self
+        case .agentAccountCheckin: AgentAccountCheckinRequest.self
         case .agentRewind: AgentRewindRequest.self
         case .agentEditMessage: AgentEditMessageRequest.self
         case .agentDeleteReply: AgentDeleteReplyRequest.self
