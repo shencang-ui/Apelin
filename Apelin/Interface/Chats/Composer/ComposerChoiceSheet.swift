@@ -26,9 +26,18 @@ final class ComposerChoiceSheet: UIViewController {
     }
 
     /// Choices under a heading of their own, such as one provider's models.
+    /// A group's subtitle rides under its heading: a provider's last-read
+    /// balance, or a word of its own.
     struct Group {
         var title: String?
+        var subtitle: String?
         var choices: [Choice]
+
+        init(title: String?, subtitle: String? = nil, choices: [Choice]) {
+            self.title = title
+            self.subtitle = subtitle
+            self.choices = choices
+        }
     }
 
     /// The height the connectivity report opens at, on a phone and on a card
@@ -158,6 +167,12 @@ final class ComposerChoiceSheet: UIViewController {
                 label.textColor = .secondaryLabel
                 label.numberOfLines = 0
                 label.accessibilityTraits = .header
+                // A provider's balance rides under its name, the last read
+                // from the meter, so the sheet says what an account has left
+                // without asking again.
+                if let subtitle = group.subtitle {
+                    label.text = "\(title) · \(subtitle)"
+                }
                 if let previous = stack.arrangedSubviews.last {
                     stack.setCustomSpacing(16, after: previous)
                 }

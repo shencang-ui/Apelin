@@ -112,6 +112,9 @@ final class ChatController: UIViewController {
     private var modelLoader: Task<Void, Never>?
     private let modelAccounts = SharedModelLoad<[String: [String]], [AgentAccount]>()
     @objc private dynamic weak var modelSheet: ComposerChoiceSheet?
+    /// The accounts the open model sheet was built from, so a balance that
+    /// lands while it is up redraws the same groups with the numbers in.
+    @objc private dynamic var modelSheetAccounts: [AgentAccount]?
     private static let modelLogger = Logger(subsystem: "wiki.qaq.apelin", category: "ModelPicker")
     private var selectionCheck: Task<Void, Never>?
     private var attachmentImport: ComposerAttachmentImport?
@@ -1179,6 +1182,7 @@ final class ChatController: UIViewController {
                     return
                 }
                 sheet.update(groups: modelGroups(accounts, for: id))
+                refreshBalanceCache(for: accounts, sheet: sheet, id: id)
                 let elapsed = Int((ProcessInfo.processInfo.systemUptime - start) * 1000)
                 Self.modelLogger.notice("picker choices ready in \(elapsed, privacy: .public) ms")
             } catch {
@@ -1229,12 +1233,49 @@ final class ChatController: UIViewController {
         }
     }
 
+    /// Asks the meter for the providers whose balance the sheet has nothing
+    /// recent on, one at a time, and redraws the sheet as each answer lands.
+    /// Every failure is silent: a meter that says nothing costs the sheet
+    /// nothing, and the next opening tries again. A provider with no meter
+    /// this reads is never asked.
+    @objc private dynamic func refreshBalanceCache(
+        for accounts: [AgentAccount],
+        sheet: ComposerChoiceSheet,
+        id: UUID,
+    ) {
+        modelSheetAccounts = accounts
+        let stale = accounts
+            .map(\.provider)
+            .filter { $0.supportsBalance && ProviderBalanceCache.isStale($0) }
+        guard !stale.isEmpty else { return }
+        Task { [weak self, weak sheet] in
+            for provider in stale {
+                do {
+                    let response = try await ApelinService.app.agentAccountBalance(provider: provider)
+                    guard let balance = response.balance else { continue }
+                    ProviderBalanceCache.store(balance, for: provider)
+                } catch {
+                    continue
+                }
+                guard let self, let sheet, self.chat?.id == id,
+                      presentedViewController === sheet, !sheet.isBeingDismissed,
+                      let current = self.modelSheetAccounts
+                else { return }
+                sheet.update(groups: self.modelGroups(current, for: id))
+            }
+        }
+    }
+
     /// One group per signed-in provider, only after the current read answered.
+    /// The group's subtitle is the provider's last-read balance, when the
+    /// provider has a meter: shown from the cache, and a miss kicks no
+    /// request — the sheet must not stall on a meter.
     private func modelGroups(_ accounts: [AgentAccount], for id: UUID) -> [ComposerChoiceSheet.Group] {
         let selected = ComposerModelSelection.selection(for: id)
         return accounts.map { account in
             ComposerChoiceSheet.Group(
                 title: account.account ?? account.provider.displayName,
+                subtitle: ProviderBalanceCache.subtitle(for: account.provider),
                 choices: (account.models ?? []).map { model in
                     ComposerChoiceSheet.Choice(
                         // The name the catalog gives it, with the provider's own
